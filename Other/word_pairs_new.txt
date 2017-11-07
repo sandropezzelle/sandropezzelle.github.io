@@ -1,0 +1,6 @@
+card-n	carry-v
+card-n	airport-n
+actor-n	eat-v
+freedom-n	demonstrate-v
+freedom-n	card-n
+freedom-n	money-n
