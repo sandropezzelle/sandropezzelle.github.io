@@ -1,0 +1,290 @@
+###########################################################
+#Computational Linguistics 17-18
+#DISSECT tutorial
+#How to: PLAY WITH DISSECT - BASIC FUNCTIONS
+#sandro.pezzelle@unitn.it
+###########################################################
+
+#demos and tutorials cen be found here:
+#http://clic.cimec.unitn.it/composes/toolkit/
+#here we will use some of the tutorials at the page:
+#http://clic.cimec.unitn.it/composes/toolkit/creating.html
+
+###########################################################
+
+#BUILD A 'COUNT' SEMANTIC SPACE
+
+###########################################################
+
+cd ~
+source dissect-env/bin/activate
+
+#ex01
+
+cd dissect-env/dissect/src/examples
+cat ex01.py
+cd data/in
+cat ex01.sm
+cat ex01.rows
+cat ex01.cols
+
+#these files result from pre-processing a corpus by fixing a context
+#window, e.g. 5 words preceding and 5 following, and counting the
+#co-occurrences of the words in the same context (we will not do that
+#here, but feel free to try at home...) 
+
+cd ../..
+#cat ex01.py
+#vim ex01.py
+#this is a ready-made script for building either sparse or dense
+#co-occurrences matrices. The dm format is the simplest distributional
+#semantic space you can build!
+
+python2.7 ex01.py
+
+#remember! DISSECT is built to work in python2.7, so it will not work
+#with python3. Remember to change version if you have python3+ installed
+
+cd data/out
+cat ex01.sm
+#car    red    5.000000
+#car    blue    1.000000
+#book    red    3.000000
+#book    readable    6.000000
+
+cat ex01.dm 
+#car    5.0    1.0    0.0
+#book    3.0    0.0    6.0
+
+#car-readable = 0.0 because they do not co-occur
+#as well as book-blue...
+
+#dense matrix contains our 'count' distributional semantics vectors! :)
+#we might already compute the (toy) similarity between 'car' and 'book'
+#remember that, in reality, such vectors are highly multi-dimensional,
+#since they encode all contexts in the corpus!
+#as a result, they can have hundreds of thousands dimensions (or more!)
+
+###########################################################
+
+#COMPUTE SEMANTIC SIMILARITY BETWEEN WORDS (1-COSINE)
+
+###########################################################
+
+python2.7
+car = [5,1,0]
+book = [3,0,6]
+import scipy
+from scipy import spatial
+#compute the similarity between the two vectors, i.e. 1-cosine distance
+1-scipy.spatial.distance.cosine(car,car)
+#1
+1-scipy.spatial.distance.cosine(car,book)
+#0.4385290096535146
+quit()
+
+#what if we want to compute semantic similarity with DISSECT?
+
+cd ../..
+#vim ex02.py
+#this script does the same work of ex01.py but it saves the space in
+#pickle format, which is the one needed for playing with DISSECT
+python2.7 ex02.py
+#now we should have the same space in pkl format
+#we can use it to compute semantic similarity between vectors
+
+#ex06.py computes the cosine similarity between car-car
+#and between car-book
+#let's try!
+
+python2.7 ex06.py
+#[[ 5.  1.  0.]
+#[ 3.  0.  6.]]
+#['car', 'book']
+#1.0        ###semantic similarity car-car
+#0.438529009654        ###semantic similarity car-book
+
+###########################################################
+
+#DIMENSIONALITY REDUCTION VIA SVD
+
+###########################################################
+
+#DISSECT has a convenient SVD function to reduce the dimensionality
+#of the vectors in the space. Useful when you have, e.g. 300K dims
+#to do so, save and load space in pkl format
+
+#apply SVD to reduce the dimensionality to 2 dimensions
+python2.7 ex04.py
+#but this script does not save a new, reduced space
+
+#we can use the DISSECT command-line tool
+cd ..
+cd src/pipelines
+python2.7 build_core_space.py -i ../examples/data/in/ex01 --input_format sm -o ../examples/data/out/
+#this creates the same space created before
+#in data/out you should find the space CORE_SS.ex01.pkl
+
+#more info here: http://clic.cimec.unitn.it/composes/toolkit/introduction.html?highlight=build_core_space
+
+#now, let's create the reduced one
+python2.7 build_core_space.py -i ../examples/data/in/ex01 --input_format sm -o ../examples/data/out/ -r svd_2
+#in data/out you should find the space CORE_SS.ex01.svd_2.pkl
+
+#to compute the similarity between car and book, we can
+#1. modify the ex06.py script using CORE_SS.ex01.svd_2.pkl
+#2. use the command-line tool
+#let's try to do it with the latter strategy...
+
+cd ~
+cd dissect-env/dissect/src/pipelines
+
+#the command takes as input a txt file containing pairs
+#of words to be compared
+#in our case we have car-car, car-book, book-book
+
+python2.7 compute_similarities.py -i ../examples/data/in/word_pairs1.txt -c 1,2 -s ../examples/data/out/CORE_SS.ex01.svd_2.pkl -o ../examples/data/out/ -m cos
+
+#let's check the similarity:
+
+cd ../examples/data/out
+cat SIMS.word_pairs1.txt.CORE_SS.ex01.svd_2.cos 
+
+#book book 1.0
+#car book 0.438529009654
+#car car 1.0
+
+###########################################################
+
+#USE REALISTIC DATA (COUNT MODEL)
+
+###########################################################
+
+#see: http://clic.cimec.unitn.it/composes/toolkit/exercises.html
+
+#let's try to build a 'real' semantic space using available data
+#i.e, co-occurrence counts for nouns, verbs extracted from Wikipedia, BNC and ukWaC
+#corpora (core.sm). The files core.rows, core.cols contain lists of words and contexts, resp.
+
+cd ~
+cd dissect-env/dissect/src/examples/data/in
+wget "clic.cimec.unitn.it/composes/toolkit/_downloads/demo.zip"
+unzip demo.zip
+rm -r demo.zip
+cd demo
+ls
+cd ../../../../pipelines/
+
+#let's create a semantic space applying positive pointwise mutual information (ppmi)
+#and SVD to 500 dimensions
+
+python2.7 build_core_space.py -i ../examples/data/in/demo/core --input_format sm -o ../examples/data/out/ -w ppmi -r svd_500
+
+cd ../examples/data/out/
+ls
+#the 'real' space is called CORE_SS.core.ppmi.svd_500.pkl
+
+#now let's compute some cosine similarities
+#let's download a txt file with some pairs
+
+cd ../in/
+wget "https://sandropezzelle.github.io/Other/word_pairs_new.txt"
+
+#alternatively, you can create your own file with all the word pairs you want...
+#cd ~
+#cd dissect-env/dissect/src/examples/data/in/
+#vim word_pairs_new.txt
+#card-n	carry-v
+#card-n	airport-n
+#actor-n	eat-v
+#freedom-n	demonstrate-v
+#freedom-n	card-n
+#freedom-n	money-n
+
+cd ~
+cd dissect-env/dissect/src/pipelines/
+python2.7 compute_similarities.py -i ../examples/data/in/word_pairs_new.txt -c 1,2 -s ../examples/data/out/CORE_SS.core.ppmi.svd_500.pkl -o ../examples/data/out/ -m cos
+
+cd ~
+cd dissect-env/dissect/src/examples/data/out
+cat SIMS.word_pairs_new.txt.CORE_SS.core.ppmi.svd_500.cos
+
+#card-n	carry-v 0.180389881158
+#card-n	airport-n 0.170840020645
+#actor-n	eat-v 0.128547201362
+#freedom-n	demonstrate-v 0.308162089284
+#freedom-n	card-n 0.0552550532074
+#freedom-n	money-n 0.16378810272
+#car-n	book-n 0.0
+
+#now it's time to visualize the top neighbors
+
+python2.7
+from composes.similarity.cos import CosSimilarity
+from composes.utils import io_utils
+core_space= io_utils.load("./CORE_SS.core.ppmi.svd_500.pkl")
+neighbors = core_space.get_neighbours("eat-v", 10, CosSimilarity())
+print neighbors 
+#try with some words, e.g. "freedom-n", "drink-v", "drink-n", "justice-n"
+quit()
+
+###########################################################
+
+#USE REALISTIC DATA (PREDICT MODEL)
+
+###########################################################
+
+#You can use pretrained, existing embeddings like w2v, glove, etc.
+#here below some repositories:
+#https://github.com/3Top/word2vec-api
+#https://github.com/Hironsan/awesome-embedding-models
+
+#I suggest using gensim for building spaces from raw text
+#https://radimrehurek.com/gensim/models/word2vec.html#gensim.models.word2vec
+#you should already have it installed...
+
+#to simplify things, I provided you with a semantic space
+#built using SoA word2vec. You downloaded the file in .bin,
+#which is the default format you get out of word2vec et similia
+#we will now convert it into pkl using a script that does the job
+#then we'll play with the DISSECT toolkit on it. READY?
+
+cd ~
+cd dissect-env/stuff/
+python2.7 bin-to-pkl.py
+#now we have the .pkl version of the space
+
+python2.7
+from composes.semantic_space.space import Space
+from composes.similarity.cos import CosSimilarity
+from composes.utils import io_utils
+from composes.utils import log_utils
+core_space= io_utils.load("./vectors.pkl")
+#we can compute the neighbours...
+print core_space.get_neighbours("eat", 10, CosSimilarity())
+#pairwise similarities...
+print core_space.get_sim("car", "truck", CosSimilarity())
+
+quit()
+
+cd ~
+deactivate
+
+###########################################################
+
+#HALF-WAY SUMMARY
+
+###########################################################
+
+#Till now we learnt how to:
+
+# 1. build COUNT models
+# 2. compute COSINE SIMILARITY between two lexical items
+# 3. find the top NEIGHBOURS
+# 4. apply dim-reduction and weighting schemes to spaces (SVD, PPMI)
+# 5. load and use a pretrained space (word2vec, glove, etc.)
+# 6. more in general, use DISSECT from scripts, python, command-line
+
+
+
+
