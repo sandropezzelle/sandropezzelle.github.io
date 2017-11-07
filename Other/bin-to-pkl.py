@@ -13,8 +13,8 @@ from composes.semantic_space.space import Space
 from composes.matrix.dense_matrix import DenseMatrix
 from composes.utils import io_utils
 
-input_file = "../../stuff/vectors.bin"
-output_file = "../../vectors.pkl"
+input_file = "vectors.bin"
+output_file = "vectors.pkl"
 
 argv = sys.argv[1:]
 
