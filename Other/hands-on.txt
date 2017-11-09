@@ -1,0 +1,92 @@
+###########################################################
+#Computational Linguistics 17-18
+#DISSECT tutorial
+#How to: PLAY WITH cDSMs
+#sandro.pezzelle@unitn.it
+###########################################################
+
+# 1. APPLY WEIGHTED ADDITIVE MODEL
+
+###########################################################
+
+#let's see how weigthing differently the consituents
+#affects the composed vector
+
+my_comp = WeightedAdditive(alpha = 1, beta = 1)
+
+composed_space2 = my_comp.compose([("sword", "fish", "sword_fish"),
+                                  ("bull", "dog", "bull_dog")], 
+                                 my_space)
+print composed_space2.get_neighbours("bull_dog", 10, CosSimilarity(), 
+                              space2 = my_space)
+
+#'bulldog' is not among the top 10 neighbors. Let's weight 'bull' less...
+my_comp = WeightedAdditive(alpha = 0.2, beta = 0.8)
+
+composed_space2 = my_comp.compose([("sword", "fish", "sword_fish"),
+                                  ("bull", "dog", "bull_dog")], 
+                                 my_space)
+print composed_space2.get_neighbours("bull_dog", 10, CosSimilarity(), 
+                              space2 = my_space)
+
+#now 'bulldog' appears in the 10th position. Slightly better! :)
+#you'd be asking yourself whether there's any way to 'learn'
+#the weights to be applied in order to get a composed vector
+#that approximates the original one... the answer is YES!
+
+###########################################################
+
+# 2. PLAY WITH FULL ADDITIVE MODEL
+
+###########################################################
+
+print composed_space_fadd_test.get_neighbours("volley_ball", 10, CosSimilarity(), 
+                              space2 = arg_space)
+print composed_space_fadd_test.get_neighbours("wind_mill", 10, CosSimilarity(), 
+                              space2 = arg_space)
+
+#it seems working, right?
+#note that the model gets better and better as the number of
+#training examples increase!
+
+###########################################################
+
+# 3. TRAIN AND TEST YOUR FULL-ADD MODEL
+
+###########################################################
+
+from composes.utils import io_utils, log_utils
+from composes.semantic_space.space import Space
+from composes.composition.full_additive import FullAdditive
+from composes.similarity.cos import CosSimilarity
+
+my_space = io_utils.load("vectors.pkl")
+compound_space = io_utils.load("composed_space_compounds.pkl")
+print rows_observed = compound_space.get_row2id()
+
+my_comp = FullAdditive()
+
+train_data = [("tennis", "table", "tennis_table"),
+		("dog", "house", "dog_house"),
+		("training", "shoes", "training_shoes"),
+		("pencil", "case", "pencil_case"),
+		("volley", "ball", "volley_ball"),
+		("wind", "mill", "wind_mill")]
+
+my_comp.train(train_data, my_space, compound_space)
+
+test_data_ym3 = [("bike", "girl", "bike_girl"),
+              ("city", "bike", "city_bike"),
+	      ("thursday", "class", "thursday_class"),
+              ("tv", "series", "tv_series")]
+
+composed_ym3 = my_comp.compose(test_data_ym3, my_space)
+
+print composed_ym3.get_neighbours("bike_girl", 10, CosSimilarity(), 
+                              space2 = my_space)
+print composed_ym3.get_neighbours("city_bike", 10, CosSimilarity(), 
+                              space2 = my_space)
+print composed_ym3.get_neighbours("thursday_class", 10, CosSimilarity(), 
+                              space2 = my_space)
+print composed_ym3.get_neighbours("tv_series", 10, CosSimilarity(), 
+                              space2 = my_space)
