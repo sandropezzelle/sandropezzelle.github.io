@@ -1,0 +1,98 @@
+#####################################################
+#Computational Linguistics 18-19
+#DISSECT tutorial
+#How to: Get ready to play!
+#sandro.pezzelle@unitn.it
+#####################################################
+
+#requirements:
+# 1. terminal
+# 2. python
+# 3. 10-15 minutes
+
+#In what follows we will create a virtual environment with
+#everything set up for our hands-on session :)
+#the nicest thing of virtual environments is that
+#they can be removed with sudo rm -r <virtualenv-folder> in case you
+#do not need to work with semantic spaces anymore!
+#OPEN THE TERMINAL and copy-paste the content of this txt file,
+#press Enter and wait for the magic happening!
+
+#install virtual env
+cd ~
+sudo pip install virtualenv
+
+#if that does not work, check if you have pip installed...
+#sudo easy_install pip
+#cd ~
+#sudo pip install virtualenv
+
+#make a directory called dissect-env
+cd ~
+virtualenv --python=/usr/bin/python2.7 dissect-env
+
+#activate virtual environment
+source dissect-env/bin/activate
+
+#open folder
+cd dissect-env/
+
+#be sure you have NumPy, SciPy, etc. installed!
+pip install numpy
+pip install scipy
+pip install cython
+pip install sparsesvd
+
+#download dissect and install it
+git clone https://github.com/composes-toolkit/dissect
+cd dissect
+python2.7 -m setup.py install
+#if this does not work
+#try instead:
+#sudo python2.7 -m setup.py install
+#and type your SUDO password
+#you should have DISSECT installed at this point!
+
+#now let's install gensim, a useful library for playing with
+#and building distributional semantics models
+cd ~
+cd dissect-env/
+easy_install -U gensim
+#now you have gensim installed!
+
+#Let's download some useful data...
+mkdir class
+cd class/
+curl -L -o 'class-stuff' 'https://sandropezzelle.github.io/Other/class-stuff.zip'
+unzip 'class-stuff.zip'
+cd class-stuff
+
+#get a .pkl version of the "predict" DSM
+python2.7 bin-to-pkl.py
+
+
+#OPTIONAL begins
+#get a small but "real" corpus
+curl -L -o 'text8.zip' 'http://mattmahoney.net/dc/text8.zip'
+unzip 'text8.zip'
+#count cooccurrences, occurrences of corpus (NOTE: it takes time and memory!) + extract contexts
+python co-occ.py
+sh extract-cols.sh
+#build a "count" DSM based on cooccurrences, occurrences counts
+python build-count-model.py
+#OPTIONAL ends
+
+
+#if you get ImportError: No module named composes.semantic_space.space
+#modify bin-to-pkl.py changing the path of vectors.bin
+#and try instead:
+#cd ~
+#cd dissect-env/dissect/src
+#python2.7 ../../class/class-stuff/bin-to-pkl.py
+
+
+#When everything is properly set up:
+deactivate
+cd ~
+
+#you're done! :)
